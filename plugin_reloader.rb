@@ -2,50 +2,48 @@
 # -*- frozen_string_literal: true -*-
 
 Plugin.create(:plugin_reloader) do
-  # アクティビティ設定
-  defactivity 'plugin_reloader_status', 'プラグインリロード'
-
-  def check_slug(slug)
-    case slug
-    when ''
-      activity :plugin_reloader_status, 'プラグインのスラグがありません'
-      false
-    when 'plugin_reloader'
-      activity :plugin_reloader_status, 'リロードできないプラグインです'
-      false
-    else
-      true
-    end
+  # 初期化
+  def initialize
+    notice 'plugin_reloader loaded'
   end
 
-  def detach(opt)
-    # postboxからメッセージを取得
-    plugin_slug = Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text
-    return unless check_slug(plugin_slug)
-    # スラグの生成
-    plugin_slug = plugin_slug.slice(/^:/) if plugin_slug[0] == ':'
-    Plugin.uninstall(:"#{plugin_slug}")
-    Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text = ''
-    activity :plugin_reloader_status, "プラグイン #{plugin_slug} のアンインストールを完了しました"
+  def detach(slug)
+    slug.slice(/^:/) if slug[0] == ':'
+    Plugin.uninstall(:"#{slug}")
   end
 
-  def attach(opt)
-    # postboxからメッセージを取得
-    plugin_slug = Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text
-    return unless check_slug(plugin_slug)
-    # スラグの生成
-    plugin_slug = plugin_slug.slice(/^:/) if plugin_slug[0] == ':'
-    Miquire::Plugin.load(:"#{plugin_slug}")
-    Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text = ''
-    activity :plugin_reloader_status, "プラグイン #{plugin_slug} のロードを完了しました"
+  def attach(slug)
+    slug.slice(/^:/) if slug[0] == ':'
+    Miquire::Plugin.load(:"#{slug}")
   end
 
+  on_plugin_detach do |slug|
+    detach(slug)
+  end
+
+  on_plugin_attach do |slug|
+    attach(slug)
+  end
+
+  on_plugin_reload do |slug|
+    detach(slug)
+    attach(slug)
+  end
+
+  # TODO: 同じ処理をうまいこと統合する
   command(:plugin_reloader_detach,
           name:      'プラグインを外す',
           condition: ->(_) { true },
           visible:   true,
           role:      :postbox) do |opt|
-    detach(opt)
+    # postboxからメッセージを取得
+    slug = Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text
+    if slug.nil? || slug.empty? || slug == 'plugin_reloader'
+      error 'slug is not acceptable'
+      next
+    end
+    detach(slug)
+    Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text = ''
   end
 
   command(:plugin_reloader_attach,
@@ -53,7 +51,14 @@ Plugin.create(:plugin_reloader) do
           condition: ->(_) { true },
           visible:   true,
           role:      :postbox) do |opt|
-    attach(opt)
+    # postboxからメッセージを取得
+    slug = Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text
+    if slug.nil? || slug.empty? || slug == 'plugin_reloader'
+      error 'slug is not acceptable'
+      next
+    end
+    attach(slug)
+    Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text = ''
   end
 
   command(:plugin_reloader_reload,
@@ -61,7 +66,14 @@ Plugin.create(:plugin_reloader) do
           condition: ->(_) { true },
           visible:   true,
           role:      :postbox) do |opt|
-    detach(opt)
-    attach(opt)
+    # postboxからメッセージを取得
+    slug = Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text
+    if slug.nil? || slug.empty? || slug == 'plugin_reloader'
+      error 'slug is not acceptable'
+      next
+    end
+    detach(slug)
+    attach(slug)
+    Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text = ''
   end
 end
