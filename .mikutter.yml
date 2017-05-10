@@ -1,0 +1,10 @@
+---
+slug: :plugin_reloader
+depends:
+  mikutter: 3.5.0
+  plugin:
+    - activity
+version: '1.0.0'
+author: ahiru
+name: plugin_reloader
+description: reload plugin
