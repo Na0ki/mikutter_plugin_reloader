@@ -4,6 +4,7 @@ depends:
   mikutter: 3.5.0
   plugin:
     - activity
+    - command
 version: '1.0.0'
 author: ahiru
 name: plugin_reloader
