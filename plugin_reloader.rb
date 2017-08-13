@@ -49,7 +49,7 @@ Plugin.create(:plugin_reloader) do
   end
 
   command(:plugin_reloader_detach,
-          name:      'プラグインを外す',
+          name:      'プラグインをアンロードする',
           condition: ->(_) { true },
           visible:   true,
           role:      :postbox) do |opt|
